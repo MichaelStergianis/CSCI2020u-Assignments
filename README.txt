@@ -1,6 +1,6 @@
 Members:
 
-	Irfan Ali
+	Irfaan Ali
 	Sam McCabe
 	Michael Stergianis
 
