@@ -11,7 +11,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 
-public class MainUI extends Application{
+public class ConfigureUI extends Application{
     @Override public void start(Stage primaryStage) {
         Keys keys = new Keys();
         primaryStage.setTitle("Masquerade");
