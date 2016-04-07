@@ -1,7 +1,9 @@
 package Masquerade.Server;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -10,20 +12,12 @@ import java.net.Socket;
  */
 public class Host {
     private ServerSocket serverSocket;
-    private File sharedFile;
+    private ConnectedClients clients;
 
     public Host(){
         try {
             serverSocket = new ServerSocket(8020);
-            this.sharedFile = new File(".");
-        } catch (IOException e){
-            e.printStackTrace();
-        }
-    }
-    public Host(int port, File sharedFile){
-        try {
-            serverSocket = new ServerSocket(port);
-            this.sharedFile = sharedFile;
+            clients = new ConnectedClients();
         } catch (IOException e){
             e.printStackTrace();
         }
@@ -32,7 +26,7 @@ public class Host {
     public Host(int port){
         try {
             serverSocket = new ServerSocket(port);
-            sharedFile = new File(".");
+            clients = new ConnectedClients();
         } catch (IOException e){
             e.printStackTrace();
         }
@@ -42,9 +36,9 @@ public class Host {
         try {
             while (true) {
                 Socket clientSocket = serverSocket.accept();
+                Client currentClient = new Client(clientSocket);
                 Thread clientThread = new Thread(
-                        new ClientConnectionHandler(clientSocket, sharedFile
-                        ));
+                        new ClientConnectionHandler(currentClient, clients));
                 clientThread.start();
             }
         } catch (IOException e) {

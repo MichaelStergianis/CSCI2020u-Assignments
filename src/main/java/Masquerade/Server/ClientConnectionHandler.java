@@ -1,147 +1,89 @@
 package Masquerade.Server;
 
+import java.awt.*;
 import java.io.*;
 import java.net.Socket;
 
 /**
  * Created by michael on 21/03/16.
  */
-public class ClientConnectionHandler implements Runnable{
+public class ClientConnectionHandler implements Runnable {
     private Socket clientSocket;
-    private File sharedFolder;
+    private ConnectedClients clients;
+    Client client;
 
-    public ClientConnectionHandler(Socket clientSocket, File sharedFolder){
-        this.clientSocket = clientSocket;
-        this.sharedFolder = sharedFolder;
+    public ClientConnectionHandler(Client client, ConnectedClients clients) {
+        this.client = client;
+        clientSocket = client.getSocket();
+        this.clients = clients;
     }
-    public void run(){
+
+    public void run() {
         try {
-            BufferedReader in = new BufferedReader(
-                    new InputStreamReader(clientSocket.getInputStream())
-            );
-            String line = in.readLine();
-            System.out.println(line + " request from "  + clientSocket.getInetAddress());
-            String[] request = line.split(" ");
-            if (request == null){
-                returnError();
-            } else if (request[0].equals("DIR")) {
-                sendDir();
-            } else if (request[0].equals("UPLOAD")) {
-                receive(request[1]);
-            } else if (request[0].equals("DOWNLOAD")) {
-                send(request[1]);
+            InputStream inStream = clientSocket.getInputStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inStream));
+            PrintWriter writer = new PrintWriter(clientSocket.getOutputStream());
+            String line = reader.readLine();
+            System.out.println(line + " request from " + clientSocket.getInetAddress());
+            String userName = line.split(" ")[0];
+            if (!clients.isConnected(userName)) {
+                try {
+                    this.client.setUserName(userName);
+                    clients.add(this.client);
+                } catch (NullPointerException e){
+                    e.printStackTrace();
+                }
+                writer.println("OK");
+                writer.flush();
             } else {
-                returnError();
+                writer.println("ERROR: That user name is already taken");
+                writer.flush();
+                writer.close();
+                reader.close();
+                clientSocket.close();
+                return;
             }
+            chatHandler(writer, reader);
             clientSocket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    private void sendDir(){
-        String[] dirs = sharedFolder.list();
+
+    public void chatHandler(PrintWriter writer, BufferedReader reader){
         try {
-            PrintWriter out = new PrintWriter(clientSocket.getOutputStream());
-            // The server will send a list of file names separated by commas
-            for (String file: dirs) {
-                out.print(file + ",");
+            while (client.isConnected()){
+                Integer firstChar = reader.read();
+                byte[] firstCharByte = {firstChar.byteValue()};
+                String request =  new String(firstCharByte) + reader.readLine();
+                String[] reqs = request.split(" ");
+                if (reqs[0].equals("LOGOUT")) {
+                    clientSocket.close();
+                    return;
+                } else if (reqs[0].equals("CHAT")) {
+                    if (clients.isConnected(reqs[1])) {
+                        Client client = clients.get(reqs[1]);
+                        if (client.getUserName().equals(this.client.getUserName())){
+                            writer.println("INVALID CLIENT");
+                            writer.flush();
+                        } else {
+                            writer.println(
+                                    client.getSocket().getInetAddress().getHostAddress() + " "
+                                    + new Integer(client.getSocket().getPort()).toString()
+                            );
+                            writer.flush();
+                        }
+                    } else {
+                        writer.println("INVALID CLIENT");
+                    }
+                    writer.flush();
+                } else {
+                    writer.println("INVALID INPUT");
+                    writer.flush();
+                }
             }
-            out.println();
-            out.flush();
-            out.close();
         } catch (IOException e){
             e.printStackTrace();
         }
-
-    }
-
-    synchronized private void receive(String fileName){
-        try {
-            InputStream in = clientSocket.getInputStream();
-            File file = new File(sharedFolder, fileCollision(fileName, 0));
-            file.createNewFile();
-            FileOutputStream fout = new FileOutputStream(file);
-            int inByte = in.read();
-            while (inByte != -1){
-                fout.write(inByte);
-                inByte = in.read();
-            }
-            fout.flush();
-            fout.close();
-            in.close();
-        } catch (IOException e){
-            e.printStackTrace();
-        }
-    }
-
-    synchronized private void send(String fileName){
-        try {
-            File file = new File(sharedFolder, fileName);
-            if (file.isDirectory()){
-                System.out.println("Request for directory " + fileName + " denied");
-                OutputStream os = clientSocket.getOutputStream();
-                os.write(-1);
-                os.flush();
-                os.close();
-                return;
-            }
-            FileInputStream fin = new FileInputStream(file);
-            OutputStream outStream = clientSocket.getOutputStream();
-            int inByte = fin.read();
-            while (inByte != -1){
-                outStream.write(inByte);
-                inByte = fin.read();
-            }
-            outStream.flush();
-            fin.close();
-            outStream.close();
-        } catch (IOException e){
-
-        }
-    }
-    public String fileCollision(String fileName, int i){
-        File file;
-        if (i > 0){
-            file = new File(sharedFolder, fileName + " (" + i + ")");
-        } else {
-            file = new File(sharedFolder, fileName);
-        }
-        if (!file.exists()){
-            return file.getName();
-        } else {
-            return fileCollision(fileName, ++i);
-        }
-    }
-    //    private void receive(String fileName, BufferedReader in){
-//        try {
-//            PrintWriter out = new PrintWriter(new FileOutputStream(new File(sharedFolder, fileName)));
-//            String line;
-//            while ( (line = in.readLine()) != null){
-//               out.print(line);
-//            }
-//            out.flush();
-//            out.close();
-//            in.close();
-//        } catch (IOException e){
-//            e.printStackTrace();
-//        }
-//    }
-    //    private void send(String fileName){
-//        try {
-//            PrintWriter out = new PrintWriter(clientSocket.getOutputStream());
-//            BufferedReader in = new BufferedReader(new FileReader(new File(fileName)));
-//            String line;
-//            while ( (line = in.readLine()) != null){
-//                out.print(line);
-//            }
-//            out.flush();
-//            out.close();
-//            in.close();
-//        } catch (IOException e){
-//            e.printStackTrace();
-//        }
-//    }
-    private void returnError(){
-
     }
 }
