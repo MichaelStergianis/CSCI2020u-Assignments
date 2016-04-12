@@ -25,10 +25,13 @@ public class ClientConnectionHandler implements Runnable {
             PrintWriter writer = new PrintWriter(clientSocket.getOutputStream());
             String line = reader.readLine();
             System.out.println(line + " request from " + clientSocket.getInetAddress());
-            String userName = line.split(" ")[0];
+            String[] parts = line.split(" ");
+            String userName = parts[0];
+            int listenPort = new Integer(parts[1]);
             if (!clients.isConnected(userName)) {
                 try {
                     this.client.setUserName(userName);
+                    this.client.setListenPort(listenPort);
                     clients.add(this.client);
                 } catch (NullPointerException e){
                     e.printStackTrace();
@@ -52,13 +55,17 @@ public class ClientConnectionHandler implements Runnable {
 
     public void chatHandler(PrintWriter writer, BufferedReader reader){
         try {
-            while (client.isConnected()){
-                Integer firstChar = reader.read();
+            Integer firstChar = 0;
+            while (firstChar != -1){
+                firstChar = reader.read();
                 byte[] firstCharByte = {firstChar.byteValue()};
                 String request =  new String(firstCharByte) + reader.readLine();
+                System.out.println(request);
                 String[] reqs = request.split(" ");
                 if (reqs[0].equals("LOGOUT")) {
                     clientSocket.close();
+                    System.out.println("Logging out " + client.getUserName());
+                    clients.remove(client.getUserName());
                     return;
                 } else if (reqs[0].equals("CHAT")) {
                     if (clients.isConnected(reqs[1])) {
@@ -69,7 +76,7 @@ public class ClientConnectionHandler implements Runnable {
                         } else {
                             writer.println(
                                     client.getSocket().getInetAddress().getHostAddress() + " "
-                                    + new Integer(client.getSocket().getPort()).toString()
+                                    + new Integer(client.getListenPort())
                             );
                             writer.flush();
                         }
@@ -82,6 +89,8 @@ public class ClientConnectionHandler implements Runnable {
                     writer.flush();
                 }
             }
+            System.out.println(client.getUserName() + " disconnected");
+            clients.remove(client.getUserName());
         } catch (IOException e){
             e.printStackTrace();
         }

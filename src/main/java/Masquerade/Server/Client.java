@@ -8,16 +8,24 @@ import java.net.Socket;
 public class Client {
     private String userName;
     private String iNet;
-    private int port;
+    private int listenPort;
     private Socket socket;
 
     public Client(Socket socket){
         this.socket = socket;
     }
+
     public Client(Socket socket, String userName){
-        this.userName = userName;
         this.socket = socket;
+        this.userName = userName;
     }
+
+    public Client(Socket socket, String userName, int listenPort){
+        this.socket = socket;
+        this.userName = userName;
+        this.setListenPort(listenPort);
+    }
+
 
     public boolean isConnected(){
         return socket.isConnected();
@@ -33,5 +41,13 @@ public class Client {
 
     public Socket getSocket(){
         return this.socket;
+    }
+
+    public int getListenPort() {
+        return listenPort;
+    }
+
+    public void setListenPort(int listenPort) {
+        this.listenPort = listenPort;
     }
 }
