@@ -1,5 +1,6 @@
 package Masquerade.Client.UI;
 
+import Masquerade.Client.Chat;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
@@ -14,34 +15,33 @@ import javafx.stage.Stage;
  * Created by michael on 08/04/16.
  */
 public class ChatChoice implements Runnable{
-    Stage window;
-    boolean answer;
-    private String userName;
+    private Chat chat;
 
 
-    public ChatChoice(String userName){
-        this.userName = userName;
+    public ChatChoice(Chat chat){
+        this.chat = chat;
     }
 
 
-    public boolean display() {
+    public void display() {
         Platform.setImplicitExit(false);
+        Stage window = new Stage();
         window.initModality(Modality.APPLICATION_MODAL);
         window.setTitle("New Chat");
-        window.setMinWidth(800);
-        window.setMinHeight(600);
+        window.setMinWidth(400);
+        window.setMinHeight(200);
         Label label = new Label();
-        label.setText("Do you wish to chat with " + userName + "?");
+        label.setText("Do you wish to chat with " + chat.getRecipient() + "?");
 
         Button yesButton = new Button("Yes");
         Button noButton = new Button("No");
 
         yesButton.setOnAction(e -> {
-            answer = true;
+            chat.setApproved(true);
             window.close();
         });
         noButton.setOnAction(e -> {
-            answer = false;
+            chat.setApproved(false);
             window.close();
         });
 
@@ -52,7 +52,6 @@ public class ChatChoice implements Runnable{
         Scene scene = new Scene(layout);
         window.setScene(scene);
         window.show();
-        return answer;
     }
 
     @Override

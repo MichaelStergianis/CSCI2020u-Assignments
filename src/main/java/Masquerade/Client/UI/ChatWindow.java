@@ -24,7 +24,7 @@ public class ChatWindow implements Runnable{
     }
     public void display() {
         Stage chatWindowStage = new Stage();
-        chatWindowStage.setTitle(chat.getRecipient());
+        chatWindowStage.setTitle("Speaking to " + chat.getRecipient());
 
 
         MenuBar menuBar = new MenuBar();
@@ -59,13 +59,15 @@ public class ChatWindow implements Runnable{
         sendButton = new Button("Send");
         sendButton.setOnAction(e -> {
             chat.sendMessage(messageField.getText());
+            messageField.clear();
         });
+        grid.add(sendButton, 1, 1);
 
         BorderPane layout = new BorderPane();
         layout.setTop(menuBar);
 
         layout.setCenter(grid);
-        Scene scene = new Scene(layout, 800, 600);
+        Scene scene = new Scene(layout, 800, 550);
 
         chatWindowStage.setScene(scene);
         chatWindowStage.show();

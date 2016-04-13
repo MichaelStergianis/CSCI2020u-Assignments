@@ -1,13 +1,8 @@
 package Masquerade.Client;
 
-import Masquerade.Client.UI.ChatChoice;
 import Masquerade.Client.UI.ChatWindow;
-import javafx.stage.Stage;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -102,7 +97,6 @@ public class User {
         if (!connected){
             throw (new Exception("User is not connected to any server"));
         }
-        System.out.println("Starting Chat");
         PrintWriter writer = new PrintWriter(serverSocket.getOutputStream());
         BufferedReader reader = new BufferedReader(
                 new InputStreamReader(serverSocket.getInputStream())
@@ -121,74 +115,63 @@ public class User {
         String[] parts = recipientINet.split(" ");
         System.out.println(recipientINet);
         Socket chatSocket = new Socket(parts[0], new Integer((parts[1])));
-        // send our username and publicKey
-        PrintWriter printWriter = new PrintWriter(chatSocket.getOutputStream());
-        printWriter.println(userName + " ");
-        printWriter.flush();
-//        for (byte i : encryptionEngine.getPublicKey().getEncoded()){
-//            printWriter.write(new Integer(i));
-//        } printWriter.flush();
-        System.out.println("Finished writing pub key");
-        BufferedReader bufferedReader = new BufferedReader(
-                new InputStreamReader(chatSocket.getInputStream())
-        );
+        OutputStream os = chatSocket.getOutputStream();
+        // send our username
+        os.write(userName.length());
+        os.write(userName.getBytes());
+        os.flush();
+        // send pubKey
+        os.write(encryptionEngine.getPublicKey().getEncoded().length);
+        os.write(encryptionEngine.getPublicKey().getEncoded());
+        os.flush();
         // receive their public key
-        byte[] firstByte = {new Byte(new Integer(bufferedReader.read()).byteValue())};
-        String publicKey = (new String(firstByte) + bufferedReader.readLine());
-        return initializeChat(chatSocket, recipientUser, publicKey);
+        InputStream is = chatSocket.getInputStream();
+        int keyLength = is.read();
+        byte[] encodedKey = new byte[keyLength];
+        is.read(encodedKey);
+        return initializeChat(chatSocket, recipientUser, encodedKey);
     }
 
     synchronized public void handleChatRequest(Socket chatSocket){
         System.out.println("Request from " + chatSocket.getInetAddress().getHostAddress() + " port: " + chatSocket.getLocalPort());
         try {
-            // get incoming info
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(chatSocket.getInputStream())
-            );
-            byte[] firstByte = {new Byte(new Integer(reader.read()).byteValue())};
-            String[] request = (new String(firstByte) + reader.readLine()).split(" ");
+            // get userName
+            InputStream is = chatSocket.getInputStream();
+            int userNameLength = is.read();
+            byte[] userName = new byte[userNameLength];
+            is.read(userName);
+
             // get the encoded key
-            System.out.println("Username is " + request[0]);
-            System.out.println("Encoded key is " + request[1]);
-            byte[] encodedKey = new byte[0];
-//            ArrayList<Byte> keyArray = new ArrayList<>();
-//            int inByte = reader.read();
-//            while (inByte != -1){
-//                System.out.print(inByte);
-//                keyArray.add( new Integer(inByte).byteValue() );
-//                inByte = reader.read();
-//            }
-//            System.out.println("\n done reading");
-//            byte[] encodedKey = new byte[keyArray.size()];
-//            for (int i = 0; i < encodedKey.length; i++) {
-//                encodedKey[i] = keyArray.get(i);
-//            }
-//            System.out.println("This is the encoded key " + encodedKey);
-            Chat chat = new Chat(chatSocket, request[0], encryptionEngine);
+            int length = is.read();
+            byte[] encodedKey = new byte[length];
+            is.read(encodedKey);
+
+            // send our key
+            OutputStream os = chatSocket.getOutputStream();
+            os.write(encryptionEngine.getPublicKey().getEncoded().length);
+            os.write(encryptionEngine.getPublicKey().getEncoded());
+
+            // set up chat
+            Chat chat = new Chat(chatSocket, this.userName, new String(userName), encryptionEngine);
             chat.setRecipientKey(encodedKey);
-            // now set up so that we can ask the user if they want ot chat
-            Main.displayChatChoice(chat);
+
+            // create thread and window
+            Thread chatThread = new Thread(chat);
+            chatThread.start();
+            Main.createChatWindow(chat);
         } catch (IOException e){
             e.printStackTrace();
         }
     }
 
-    synchronized public Chat initializeChat(Socket chatSocket, String userName, String publicKey){
-        try {
-            PrintWriter writer = new PrintWriter(chatSocket.getOutputStream());
-            writer.println(this.getUserName());
-            writer.flush();
-            Chat chat = new Chat(chatSocket, userName, encryptionEngine);
+    synchronized public Chat initializeChat(Socket chatSocket, String userName, byte[] publicKey){
+            Chat chat = new Chat(chatSocket, this.userName, userName, encryptionEngine);
+            chat.setRecipientKey(publicKey);
             Thread chatThread = new Thread(chat);
             chatThread.start();
             ChatWindow chatWindow = new ChatWindow(chat);
             chatWindow.display();
-            System.out.println("I just showed you the chat window!");
             return chat;
-        } catch (IOException e){
-            e.printStackTrace();
-            return null;
-        }
     }
 
     synchronized public void logout() throws Exception{

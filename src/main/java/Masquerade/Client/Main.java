@@ -40,6 +40,7 @@ public class Main extends Application {
 
         /* create the menu (for the top of the user interface) */
         Menu fileMenu = new Menu("File");
+
         MenuItem exitMenuItem = new MenuItem("Exit");
         fileMenu.getItems().add(exitMenuItem);
         exitMenuItem.setAccelerator(KeyCombination.keyCombination("Ctrl+Q"));
@@ -57,6 +58,7 @@ public class Main extends Application {
                 return;
             }
         });
+
         MenuBar menuBar = new MenuBar();
         menuBar.getMenus().add(fileMenu);
 
@@ -112,43 +114,11 @@ public class Main extends Application {
 
     public static void main(String[] args) {
         launch(args);
-//        User user = new User(args[0]);
-//        System.out.println("ListenPort: " + user.getListenSocket().getLocalPort());
-//        user.connectToServer("127.0.0.1", 8020);
-//        try {
-//            if (args[1].equals("y")) {
-//                user.startChat(args[2]);
-//            }
-//            System.out.print("Ready to logout? [y/n]: ");
-//            Scanner s = new Scanner(System.in);
-//            String answer = "n";
-//            while (!answer.equalsIgnoreCase("y")){
-//                answer = s.next();
-//                if (answer.equalsIgnoreCase("y")) {
-//                    user.logout();
-//                }
-//            }
-//        } catch (Exception e){
-//            e.printStackTrace();
-//        }
     }
 
-    public static boolean displayChatChoice(Chat chat){
-        ChatChoice chatChoice = new ChatChoice(chat.getRecipient());
-        Platform.runLater(chatChoice);
-        return chatChoice.display();
-    }
-
-    public static void createChatWindow(String[] request){
-        Chat chat = new Chat();
-        Platform.runLater(chat);
+    public static void createChatWindow(Chat chat){
         ChatWindow chatWindow = new ChatWindow(chat);
         Platform.runLater(chatWindow);
     }
-
-    public static void handleIncomingChat(Chat chat){
-
-    }
-
 
 }

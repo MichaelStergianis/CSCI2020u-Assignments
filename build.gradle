@@ -2,13 +2,28 @@ group 'masquerade'
 version '1.0-SNAPSHOT'
 
 apply plugin: 'java'
+apply plugin: 'idea'
 
-sourceCompatibility = 1.5
+sourceCompatibility = 1.8
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    testCompile group: 'junit', name: 'junit', version: '4.11'
+    compile     group: 'org.apache.shiro', name: 'shiro-all', version: '1.2.4'
+    compile files("/usr/lib/jvm/java-8-openjdk/lib/tools.jar")
+    compile     group: 'org.slf4j', name: "slf4j-api", version: "1.7.5"
+    compile     group: 'org.slf4j', name: "slf4j-log4j12", version: "1.7.5"
+    compile     group: 'commons-logging', name: 'commons-logging', version: '1.2'
+}
+
+task(runClient, dependsOn: 'classes', type: JavaExec){
+    main = 'Masquerade.Client.Main'
+    classpath = sourceSets.main.runtimeClasspath
+}
+
+task(runServer, dependsOn: 'classes', type: JavaExec){
+	main = 'Masquerade.Server.Main'
+	classpath = sourceSets.main.runtimeClasspath
 }

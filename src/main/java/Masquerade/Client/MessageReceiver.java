@@ -22,19 +22,18 @@ public class MessageReceiver implements Runnable{
     public void receiveMessage(){
         try {
             InputStream is = socket.getInputStream();
-            ArrayList<Byte> byteArray = new ArrayList<>();
-            int byteIn = is.read();
-            while (byteIn != -1) {
-                byteArray.add(new Byte(new Integer(byteIn).byteValue()));
-                byteIn = is.read();
-            }
+            int messageLength = is.read();
+            byte[] encodedMessage = new byte[messageLength];
+            is.read(encodedMessage);
+            chat.recieveMessage(encodedMessage);
         } catch (IOException e){
             e.printStackTrace();
         }
     }
     @Override
     public void run() {
-        while (socket.isConnected()){
+        while (!socket.isClosed()){
+            System.out.println("Started message reciver");
             receiveMessage();
         }
     }
